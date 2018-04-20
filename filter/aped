@@ -1,0 +1,51 @@
+#!/bin/bash
+# NAME
+#   aped (application properties editor)
+# SYNOPSIS
+#   aped [--PARAM=VALUE]... [FILES]...
+# DESCRIPTION
+#   Replace each PARAM values from FILE by VALUE with the command sed.
+#   
+#   With no FILE, or when FILE is -, read standard input.
+# AUTHOR
+#   Written by Flavien Schriever for AXELOR Company
+
+FILES=()
+
+for i in "$@"
+do
+    case $i in
+        --*=*)
+            ARG=${i#--*}
+            PARAM=${ARG%=*}
+            VALUE=${ARG#*=}
+            PATTERN+="s|\(${PARAM}\ =\ \).*$|\1${VALUE}|;"
+            ;;
+        -*)
+            ;;
+        *)
+            FILES=("${FILES[@]}" $i)
+            ;;
+    esac
+done
+
+if [ ${#FILES[@]} -eq 0 ]; then
+    sed "$PATTERN" -
+else
+    for FILE in ${FILES[@]}
+    do
+        if [ $FILE == "-" ]; then
+            IFS=''
+            INPUT=`cat /dev/stdin`
+            if [ ${#INPUT} -eq 0 ]; then
+                while read -r LINE < /dev/tty ; do
+                    echo $LINE | sed "$PATTERN" -
+                done
+            else
+                echo $INPUT | sed "$PATTERN" -
+            fi
+        else
+            sed "$PATTERN" $FILE
+        fi
+    done
+fi
